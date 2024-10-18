@@ -1,7 +1,7 @@
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
-
+from typing import Optional
 
 # conectar a db
 def db_connection():
@@ -127,6 +127,67 @@ def create_note(id_usuario: int, titulo: str, contenido: str):
         connection.close()
     return new_note
 
+def update_note(id_note: int, titulo:Optional[str], contenido:Optional[str]):
+    connection = db_connection()
+    if connection is None:
+        return None
+
+    cursor = connection.cursor(dictionary=True)
+
+    # Consulta SQL para actualizar solo los campos no nulos
+    query = """
+        UPDATE notas
+        SET 
+            titulo = IFNULL(%s, titulo),
+            contenido = IFNULL(%s, contenido),
+            fecha_actualizacion = NOW()
+        WHERE id = %s
+    """
+    values = (titulo, contenido, id_note)
+    
+    try:
+        cursor.execute(query, values)
+        connection.commit()
+
+        # Verificar si se actualizó alguna fila
+        if cursor.rowcount == 0:
+            return None
+        
+        # Obtener la nota actualizada
+        cursor.execute("SELECT * FROM notas WHERE id = %s", (id_note,))
+        updated_note = cursor.fetchone()
+    except Exception as e:
+        connection.rollback()
+        return None
+    finally:
+        cursor.close()
+        connection.close()
+
+    return updated_note
+
+def delete_note_db(note_id:int):
+    connection = db_connection()
+    if connection is None:
+        return None
+
+    cursor = connection.cursor(dictionary=True)
+    sql_delete_query = "DELETE FROM notas WHERE id = %s"
+    try:
+        cursor.execute("SELECT * FROM notas WHERE id = %s", (note_id,))
+        delete_note = cursor.fetchone()
+
+        cursor.execute(sql_delete_query, (note_id,))
+        connection.commit()  
+
+    except Exception as e:
+        connection.rollback()
+        print(e)
+        return None
+    finally:
+        cursor.close()
+        connection.close()
+
+    return delete_note
 def format_date(date: datetime) -> str:
     return date.strftime("%Y-%m-%d %H:%M:%S")
 if __name__ == '__main__':

@@ -1,16 +1,23 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 import mysql.connector
 from mysql.connector import Error
 from pydantic import BaseModel
 from typing import List, Optional
-from ctrl_db import get_all_notes, get_note_id, get_note_cag, create_note
+from ctrl_db import ( 
+    get_all_notes,
+    get_note_id,
+    get_note_cag,
+    create_note, 
+    update_note,
+    delete_note_db
+)
 app = FastAPI()
 
 app.title = 'Bloc_Notas'
 
 app.version = '1.0'
 
-print(get_all_notes())
+#print(get_all_notes())
 
 app = FastAPI()
 
@@ -27,6 +34,8 @@ class Note(BaseModel):
     contenido: str
     fecha_creacion: str
     fecha_actualizacion: str
+
+
 # GET: Obtener todas las notas
 @app.get("/notes/", response_model=List[Note])
 def get_notes():
@@ -67,3 +76,27 @@ def create_new_note(note: NoteCreate):
         return new_note
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear la nota: {e}")
+
+@app.put("/notes/update/{id_note}")
+def edit_note(
+    id_note:int,
+    titulo:Optional[str] = Body(None),
+    contenido:Optional[str] = Body(None),
+    ):
+    try:
+        updated_note = update_note(id_note, titulo, contenido)
+        if updated_note is None:
+            raise HTTPException(status_code=404, detail="Nota no encontrada")
+        return updated_note
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar la nota: {e}")
+@app.delete("/notes/delete")
+def delete_note(note_id:int):
+    
+    try:
+        note = delete_note_db(note_id)
+        if note is None:
+            raise HTTPException(status_code=404, detail="Nota no encontrada")
+        return note
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar la nota: {e}")
